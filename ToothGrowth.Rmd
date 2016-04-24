@@ -1,0 +1,106 @@
+---
+title: "Effect of Vitamin C and OJ on Tooth Growth"
+author: "F. Alex Crofut"
+date: "Saturday, April 23, 2016"
+output: pdf_document
+---
+
+##Synopsis
+This analysis will explore the relationship between tooth growth and dose and supplement, 
+both singly and in combination.  First, the analysis will install necessary packages and
+the dataset.  Second, the structure of the data will be examined, followed by an initial
+exploration of the data.  the assumptions will be stated formally and confidence intervals
+will be employed to compare changes in dose and/or supplement type.
+
+##Exploratory Data Analysis
+
+###Required Packages
+```{r requiredpackages}
+if (!"datasets" %in% installed.packages()) install.packages("datasets")
+library("datasets")
+if (!"ggplot2" %in% installed.packages()) install.packages("ggplot2")
+library("ggplot2")
+if (!"gridExtra" %in% installed.packages()) install.packages("gridExtra")
+library("gridExtra")
+```
+
+###Data Structure
+The dataset ToothGrowth (from the datasets package) contains 60 observations on 3 variables:   
+```{r data}
+data(ToothGrowth)
+str(ToothGrowth)
+summary(ToothGrowth)
+```
+
+### Data Exploration
+```{r boxplot}
+p1 <- ggplot(aes(x = as.factor(dose), y = len), data = ToothGrowth) + 
+        geom_boxplot(fill = "blue") +  
+        labs(x = "Dose", y = "Tooth Growth") + 
+        ggtitle("Tooth Growth by Dose")
+p2 <- ggplot(aes(x = supp, y = len), data = ToothGrowth) + 
+        geom_boxplot(aes(fill = supp)) + facet_wrap(~ dose) + 
+        labs(x = "Supplement", y = "Tooth Growth") + 
+        ggtitle("Tooth Growth by Dose and Supplement")
+grid.arrange(p1, p2, ncol=2)
+```
+From the first boxplot, it appears that dose is indeed correlated with tooth growth.  Furthermore,
+the second boxplot appears to show that the supplement choice has an effect at the two lower doses, 
+but not at a dose of 2.0mg.
+
+##Key Assumptions
+In order to perform the following hypothesis tests, the following assumptions need to be made:   
+
+* Population is independent an didentically distributed
+* Data is not paired
+* Measurement error is accounted for by significant digits
+* The study was double blind
+* A 95% confidence is sufficient to determine significance in this case
+
+##Hypothesis Tests
+
+###Dose as only Determinant
+```{r dose only}
+d1 <- subset(ToothGrowth, dose %in% c(0.5, 1.0))
+d2 <- subset(ToothGrowth, dose %in% c(0.5, 2.0))
+d3 <- subset(ToothGrowth, dose %in% c(1.0, 2.0))
+t1 <- t.test(len ~ dose, paired=FALSE, var.equal = FALSE, data = d1)
+t2 <- t.test(len ~ dose, paired=FALSE, var.equal = FALSE, data = d2)
+t3 <- t.test(len ~ dose, paired=FALSE, var.equal = FALSE, data = d3)
+```
+The confidence intervals:   
+
+* [`r round(t1$conf.int,3)`] for increasing dose from 0.5mg to 1.0mg   
+* [`r round(t2$conf.int,3)`] for increasing dose from 0.5mg to 2.0mg   
+* [`r round(t3$conf.int,3)`] for increasing dose from 1.0mg to 2.0mg   
+
+All allow rejection of the null hypothesis that dose has no effect on tooth growth.
+
+###Supplement as only Determinant
+```{r supplement only}
+supp <- t.test(len ~ supp, paired = FALSE, var.equal = FALSE, data = ToothGrowth)
+```
+The confidence interval [`r round(supp$conf.int, 3)`] means the null hypothesis that 
+Tooth Length is not affected by supplement choice **cannot** be rejected.
+
+###Supplement Type as a Factor within Dose Levels
+```{r both}
+d4 <- subset(ToothGrowth, dose == 0.5)
+d5 <- subset(ToothGrowth, dose == 1.0)
+d6 <- subset(ToothGrowth, dose == 2.0)
+t4 <- t.test(len ~ supp, paired = FALSE, var.equal = FALSE, data = d4)
+t5 <- t.test(len ~ supp, paired = FALSE, var.equal = FALSE, data = d5)
+t6 <- t.test(len ~ supp, paired = FALSE, var.equal = FALSE, data = d6)
+```
+The confidence intervals for increasing the dose from 0.5mg to 1.0mg [`r round(t4$conf.int,3)`] 
+and increasing the dose from 0.5mg to 2.0mg [`r round(t5$conf.int,3)`] provide evidence that 
+the OJ is more effective than Vitaming C in increasing tooth length.  However, the interval 
+for increasing the dose from 1.0mg to 2.0mg [`r round(t6$conf.int,3)`] shows that the choice 
+of supplement does not affect the effectiveness of the dose at 2.0mg.
+
+##Conclusions
+Given the key assumptions and the results of the t-tests, one can infer that increases in dose
+have a significant correlation to tooth growth, regardless of the choice in supplements.  Furthermore,
+the choice of supplements impacts the effectiveness of doses 0.5mg and 1.0mg.  However, for doses
+of 2.0mg, the choice of supplement is no longer a significant effect.  Finally, there is no evidence
+that the choice of supplement alone has a significant correlation with tooth growth.
